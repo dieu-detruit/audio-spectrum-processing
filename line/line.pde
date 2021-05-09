@@ -5,8 +5,7 @@ import ddf.minim.analysis.*;
 VideoExport videoExport;
 Minim minim;
 AudioPlayer player;
-FFT fft;
-int fftSize;
+int K;
 
 PImage bg;
 String date_string;
@@ -27,17 +26,27 @@ void settings()
 
 //float[][] data;
 float[] data;
+float[] x1;
+float[] x2;
+
 void setup()
 {
     bg = loadImage("../thumb/" + date_string + ".png");
 
     minim = new Minim(this);
-    fftSize = 512;
-    //data = new float[fftSize][5];
-    data = new float[fftSize];
+    K = 512;
+    //data = new float[K][5];
+    data = new float[K];
+    x1 = new float[K];
+    x2 = new float[K];
+
+    for (int i = 0; i < K - 1; ++i) {
+        x1[i] = (float)width * i / K;
+        x2[i] = (float)width * (i + 1) / K;
+    }
 
     videoExport = new VideoExport(this, "nosound.mp4");
-    player = minim.loadFile("../wav/" + date_string + ".wav", fftSize);
+    player = minim.loadFile("../wav/" + date_string + ".wav", K);
 
     surface.setVisible(false);
 
@@ -58,10 +67,6 @@ float huber(float x)
     }
 }
 
-/*float median_filter(float[] x) {*/
-/*y = */
-/*}*/
-
 void draw()
 {
     background(bg);
@@ -74,18 +79,11 @@ void draw()
 
     float amplitude = 200;
 
-    float alpha = 0.6;
+    float alpha = 0.6, alpha_cmpl = 1.0 - alpha;
     int N = player.bufferSize();
     for (int i = 0; i < N - 1; ++i) {
-        /*for(int j=0; j<4; ++j) {*/
-        /*data[i][j] = data[i][j + 1] */
-        /*}*/
-        data[i] = alpha * data[i] + (1.0 - alpha) * player.left.get(i);
-        float x1 = map(i, 0, N, 0, width);
-        float x2 = map(i + 1, 0, N, 0, width);
-        //float alpha = 50 * (1 - pow(i - N/2, 2) / pow(N/2, 2));
-        //stroke(255, 255, 255, alpha);
-        line(x1, height - 100 + amplitude * huber(player.left.get(i)), x2, height - 100 + amplitude * huber(player.left.get(i + 1)));
+        data[i] = alpha * data[i] + alpha_cmpl * player.left.get(i);
+        line(x1[i], height - 100 + amplitude * player.left.get(i), x2[i], height - 100 + amplitude * player.left.get(i + 1));
     }
     videoExport.saveFrame();
 
